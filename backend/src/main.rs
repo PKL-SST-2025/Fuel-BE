@@ -1,10 +1,13 @@
 mod handlers;
+mod models;
 mod utils;
 
 use axum::{routing::{post, get, put, delete}, Router};
 use crate::handlers::user::{register_user, get_users, get_user_by_id, update_user_by_id, delete_user_by_id, login_user, forgot_password};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
+use crate::handlers::brand::{get_all_brands, create_brands, update_brands, delete_brands};
+use crate::handlers::spbu::{get_all_spbu, get_spbu_by_id, create_spbu, update_spbu, delete_spbu};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -31,6 +34,11 @@ async fn main() {
         .route("/user/:id", delete(delete_user_by_id))
         .route("/login", post(login_user))
         .route("/forgot_password", post(forgot_password))
+        .route("/brands", get(get_all_brands).post(create_brands))
+        .route("/brands/:id", put(update_brands))
+        .route("/brands/:id", delete(delete_brands))
+        .route("/spbu", get(get_all_spbu).post(create_spbu))
+        .route("/spbu/:id", get(get_spbu_by_id).put(update_spbu).delete(delete_spbu))
         .with_state(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
