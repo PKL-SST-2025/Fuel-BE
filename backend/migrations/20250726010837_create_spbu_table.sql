@@ -4,7 +4,7 @@ CREATE TABLE spbu (
     alamat TEXT NOT NULL,
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
-    brand_id UUID REFERENCES brand(id),
+    brand_id UUID REFERENCES brands(id),
     rating FLOAT DEFAULT 0,
     jumlah_pompa INT DEFAULT 0,
     jumlah_antrian INT DEFAULT 0,
