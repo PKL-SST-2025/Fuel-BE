@@ -74,4 +74,48 @@
 
 ---
 
+## Dokumentasi API Service/Layanan
+
+### Service Management
+1. **GET Semua Service**
+   - Method: `GET`
+   - URL: `http://127.0.0.1:3000/services`
+   - Response: Daftar semua layanan
+
+2. **GET Service by ID**
+   - Method: `GET`
+   - URL: `http://127.0.0.1:3000/services/<id_service>`
+   - Ganti `<id_service>` dengan UUID service yang ingin dilihat
+
+3. **POST Buat Service Baru**
+   - Method: `POST`
+   - URL: `http://127.0.0.1:3000/services`
+   - Body (raw JSON):
+     ```json
+     {
+       "nama": "Cuci Mobil",
+       "icon_url": "https://example.com/wash-icon.png"
+     }
+     ```
+   - Response: Data service yang baru dibuat
+
+4. **UPDATE Service**
+   - Method: `PUT`
+   - URL: `http://127.0.0.1:3000/services/<id_service>`
+   - Body (raw JSON):
+     ```json
+     {
+       "nama": "Cuci Mobil Premium",
+       "icon_url": "https://example.com/premium-wash.png"
+     }
+     ```
+   - Response: Data service yang sudah diupdate
+
+5. **DELETE Service**
+   - Method: `DELETE`
+   - URL: `http://127.0.0.1:3000/services/<id_service>`
+   - Response: 204 No Content jika berhasil
+
+---
+
 > Silakan gunakan Postman untuk mencoba endpoint di atas. Ganti parameter sesuai kebutuhan.
