@@ -7,6 +7,7 @@ use crate::handlers::user::{register_user, get_users, get_user_by_id, update_use
 use crate::handlers::brand::{get_all_brands, create_brands, update_brands, delete_brands};
 use crate::handlers::spbu::{get_all_spbu, get_spbu_by_id, create_spbu, update_spbu, delete_spbu};
 use crate::handlers::service::{get_all_services, create_service, get_service_by_id, update_service, delete_service};
+use crate::handlers::spbu_service::{add_service_to_spbu, remove_service_from_spbu, get_services_by_spbu, get_spbus_by_service};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 
@@ -43,6 +44,10 @@ async fn main() {
         // Service CRUD
         .route("/services", get(get_all_services).post(create_service))
         .route("/services/:id", get(get_service_by_id).put(update_service).delete(delete_service))
+        // SPBU-Service relationships
+        .route("/spbu/:spbu_id/services", get(get_services_by_spbu).post(add_service_to_spbu))
+        .route("/spbu/:spbu_id/services/:service_id", delete(remove_service_from_spbu))
+        .route("/services/:service_id/spbus", get(get_spbus_by_service))
         .with_state(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
