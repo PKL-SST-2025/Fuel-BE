@@ -4,12 +4,33 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{
-    models::{spbu_service::*, AppState},
-    utils::response::{error, success},
-};
+use crate::AppState;
+use crate::models::service::Service;
+use crate::models::spbu::Spbu;
+
+#[derive(Debug, Deserialize)]
+pub struct AddServiceToSpbuRequest {
+    pub service_id: Uuid,
+}
+
+// Helper functions for response
+fn success<T: serde::Serialize>(data: T) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "status": "success",
+        "data": data
+    }))
+}
+
+fn error(status: StatusCode, message: impl Into<String>) -> (StatusCode, Json<serde_json::Value>) {
+    let error_response = serde_json::json!({
+        "status": "error",
+        "message": message.into()
+    });
+    (status, Json(error_response))
+}
 
 // Menambahkan service ke SPBU
 pub async fn add_service_to_spbu(
@@ -18,8 +39,9 @@ pub async fn add_service_to_spbu(
     Json(payload): Json<AddServiceToSpbuRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     // Cek apakah SPBU ada
-    let spbu = sqlx::query!("SELECT id FROM spbu WHERE id = $1", spbu_id)
-        .fetch_optional(&state.pg_pool)
+    let spbu: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM spbu WHERE id = $1")
+        .bind(spbu_id)
+        .fetch_optional(&state.db)
         .await
         .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -28,8 +50,9 @@ pub async fn add_service_to_spbu(
     }
 
     // Cek apakah service ada
-    let service = sqlx::query!("SELECT id FROM services WHERE id = $1", payload.service_id)
-        .fetch_optional(&state.pg_pool)
+    let service: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM services WHERE id = $1")
+        .bind(payload.service_id)
+        .fetch_optional(&state.db)
         .await
         .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -38,17 +61,17 @@ pub async fn add_service_to_spbu(
     }
 
     // Tambahkan service ke SPBU
-    let result = sqlx::query!(
+    let result: Option<(Uuid, Uuid)> = sqlx::query_as(
         r#"
         INSERT INTO spbu_services (spbu_id, service_id)
         VALUES ($1, $2)
         ON CONFLICT (spbu_id, service_id) DO NOTHING
         RETURNING spbu_id, service_id
-        "#,
-        spbu_id,
-        payload.service_id
+        "#
     )
-    .fetch_optional(&state.pg_pool)
+    .bind(spbu_id)
+    .bind(payload.service_id)
+    .fetch_optional(&state.db)
     .await
     .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -64,12 +87,28 @@ pub async fn remove_service_from_spbu(
     State(state): State<AppState>,
     Path((spbu_id, service_id)): Path<(Uuid, Uuid)>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let result = sqlx::query!(
-        "DELETE FROM spbu_services WHERE spbu_id = $1 AND service_id = $2",
-        spbu_id,
-        service_id
+    let exists: Option<(i64,)> = sqlx::query_as(
+        "SELECT 1 FROM spbu_services WHERE spbu_id = $1 AND service_id = $2"
     )
-    .execute(&state.pg_pool)
+    .bind(spbu_id)
+    .bind(service_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    if exists.is_none() {
+        return Err(error(
+            StatusCode::NOT_FOUND,
+            "Service not found in this SPBU",
+        ));
+    }
+
+    let result = sqlx::query(
+        "DELETE FROM spbu_services WHERE spbu_id = $1 AND service_id = $2"
+    )
+    .bind(spbu_id)
+    .bind(service_id)
+    .execute(&state.db)
     .await
     .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -89,20 +128,13 @@ pub async fn get_services_by_spbu(
     Path(spbu_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
     let services = sqlx::query_as!(
-        SpbuServiceResponse,
-        r#"
-        SELECT 
-            ss.spbu_id, 
-            ss.service_id,
-            s.nama as service_name,
-            s.icon_url as service_icon_url
-        FROM spbu_services ss
-        JOIN services s ON ss.service_id = s.id
-        WHERE ss.spbu_id = $1
-        "#,
+        Service,
+        "SELECT s.* FROM services s 
+         JOIN spbu_services ss ON s.id = ss.service_id 
+         WHERE ss.spbu_id = $1",
         spbu_id
     )
-    .fetch_all(&state.pg_pool)
+    .fetch_all(&state.db)
     .await
     .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -114,30 +146,14 @@ pub async fn get_spbus_by_service(
     State(state): State<AppState>,
     Path(service_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let spbus = sqlx::query!(
-        r#"
-        SELECT 
-            s.id, 
-            s.nama, 
-            s.alamat,
-            s.latitude,
-            s.longitude,
-            s.rating,
-            s.jumlah_pompa,
-            s.jumlah_antrian,
-            s.foto,
-            s.created_at,
-            s.updated_at,
-            b.nama as brand_nama,
-            b.logo_url as brand_logo_url
-        FROM spbu_services ss
-        JOIN spbu s ON ss.spbu_id = s.id
-        JOIN brands b ON s.brand_id = b.id
-        WHERE ss.service_id = $1
-        "#,
+    let spbus = sqlx::query_as!(
+        Spbu,
+        "SELECT s.* FROM spbu s 
+         JOIN spbu_services ss ON s.id = ss.spbu_id 
+         WHERE ss.service_id = $1",
         service_id
     )
-    .fetch_all(&state.pg_pool)
+    .fetch_all(&state.db)
     .await
     .map_err(|e| error(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

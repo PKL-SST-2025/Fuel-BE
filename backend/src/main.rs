@@ -1,13 +1,20 @@
 mod handlers;
+mod middleware;
 mod models;
 mod utils;
 
-use axum::{routing::{post, get, put, delete}, Router};
+use axum::{
+    routing::{post, get, put, delete},
+    Router,
+    response::IntoResponse,
+    http::StatusCode,
+};
 use crate::handlers::user::{register_user, get_users, get_user_by_id, update_user_by_id, delete_user_by_id, login_user, forgot_password};
 use crate::handlers::brand::{get_all_brands, create_brands, update_brands, delete_brands};
 use crate::handlers::spbu::{get_all_spbu, get_spbu_by_id, create_spbu, update_spbu, delete_spbu};
 use crate::handlers::service::{get_all_services, create_service, get_service_by_id, update_service, delete_service};
 use crate::handlers::spbu_service::{add_service_to_spbu, remove_service_from_spbu, get_services_by_spbu, get_spbus_by_service};
+use crate::handlers::wishlist::{add_to_wishlist, remove_from_wishlist, get_user_wishlists};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 
@@ -47,6 +54,15 @@ async fn main() {
         // SPBU-Service relationships
         .route("/spbu/:spbu_id/services", get(get_services_by_spbu).post(add_service_to_spbu))
         .route("/spbu/:spbu_id/services/:service_id", delete(remove_service_from_spbu))
+        
+        // Wishlist endpoints
+        .route("/wishlist", 
+            post(add_to_wishlist)
+                .get(get_user_wishlists)
+        )
+        .route("/wishlist/:spbu_id", 
+            delete(remove_from_wishlist)
+        )
         .route("/services/:service_id/spbus", get(get_spbus_by_service))
         .with_state(app_state);
 
