@@ -15,6 +15,10 @@ use crate::handlers::spbu::{get_all_spbu, get_spbu_by_id, create_spbu, update_sp
 use crate::handlers::service::{get_all_services, create_service, get_service_by_id, update_service, delete_service};
 use crate::handlers::spbu_service::{add_service_to_spbu, remove_service_from_spbu, get_services_by_spbu, get_spbus_by_service};
 use crate::handlers::wishlist::{add_to_wishlist, remove_from_wishlist, get_user_wishlists};
+use crate::handlers::review::{
+    create_review, get_review, update_review, delete_review,
+    get_spbu_reviews, get_spbu_rating,
+};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 
@@ -25,7 +29,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    dotenvy::dotenv().ok();
+    dotenv::dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     let pool = PgPoolOptions::new()
@@ -64,6 +68,12 @@ async fn main() {
             delete(remove_from_wishlist)
         )
         .route("/services/:service_id/spbus", get(get_spbus_by_service))
+        
+        // Review routes
+        .route("/reviews", post(create_review))
+        .route("/reviews/:review_id", get(get_review).put(update_review).delete(delete_review))
+        .route("/spbu/:spbu_id/reviews", get(get_spbu_reviews))
+        .route("/spbu/:spbu_id/rating", get(get_spbu_rating))
         .with_state(app_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

@@ -14,9 +14,32 @@ uuid = { version = "1", features = ["serde", "v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
-dotenvy = "0.15"
+dotenv = { version = "0.15", optional = true }
 axum-extra = "0.7"
 argon2 = "0.5" 
 password-hash = "0.5"
 rand_core = "0.6"
 bcrypt = "0.15"
+
+[features]
+default = ["dotenv"]
+
+[[bin]]
+name = "check_users"
+path = "scripts/check_users.rs"
+required-features = ["dotenv"]
+
+[[bin]]
+name = "create_test_user"
+path = "scripts/create_test_user.rs"
+required-features = ["dotenv"]
+
+[[bin]]
+name = "check_users_schema"
+path = "scripts/check_users_schema.rs"
+required-features = ["dotenv"]
+
+[[bin]]
+name = "check_spbus"
+path = "scripts/check_spbus.rs"
+required-features = ["dotenv"]

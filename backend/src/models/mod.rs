@@ -4,3 +4,4 @@ pub mod spbu;
 pub mod service;
 pub mod spbu_service;
 pub mod wishlist;
+pub mod review;
