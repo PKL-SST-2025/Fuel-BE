@@ -1,3 +1,9 @@
+-- Pastikan ekstensi uuid-ossp aktif
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Hapus tabel jika sudah ada
+DROP TABLE IF EXISTS wishlists CASCADE;
+
 -- Buat tabel wishlists
 CREATE TABLE wishlists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
