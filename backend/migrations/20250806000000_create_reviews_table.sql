@@ -1,11 +1,24 @@
 -- Pastikan ekstensi uuid-ossp aktif
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Hapus trigger dan function yang mungkin sudah ada
+DROP TRIGGER IF EXISTS update_spbu_rating_after_delete ON reviews;
+DROP TRIGGER IF EXISTS update_spbu_rating_after_review ON reviews;
+DROP TRIGGER IF EXISTS update_reviews_timestamp ON reviews;
+
+-- Hapus function
+DROP FUNCTION IF EXISTS update_spbu_rating();
+DROP FUNCTION IF EXISTS update_review_timestamp();
+
+-- Hapus index
+DROP INDEX IF EXISTS idx_reviews_user_id;
+DROP INDEX IF EXISTS idx_reviews_spbu_id;
+
 -- Hapus tabel jika sudah ada
 DROP TABLE IF EXISTS reviews CASCADE;
 
 -- Buat tabel reviews
-CREATE TABLE IF NOT EXISTS reviews (
+CREATE TABLE reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     spbu_id UUID NOT NULL REFERENCES spbu(id) ON DELETE CASCADE,
@@ -43,11 +56,11 @@ BEGIN
     SET rating = (
         SELECT COALESCE(AVG(rating), 0)
         FROM reviews
-        WHERE spbu_id = NEW.spbu_id
+        WHERE spbu_id = COALESCE(NEW.spbu_id, OLD.spbu_id)
     )
-    WHERE id = NEW.spbu_id;
+    WHERE id = COALESCE(NEW.spbu_id, OLD.spbu_id);
     
-    RETURN NEW;
+    RETURN NULL;
 END;
 $$ language 'plpgsql';
 
