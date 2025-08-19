@@ -4,22 +4,38 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.6"
-hyper = "0.14"
-tokio = { version = "1", features = ["full"] }
-tower = "0.4"
-tower-http = { version = "0.3", features = ["trace"] }
-sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "macros", "uuid", "chrono", "time"] }
-uuid = { version = "1", features = ["serde", "v4"] }
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0"
-dotenv = { version = "0.15", optional = true }
-axum-extra = "0.7"
-argon2 = "0.5" 
-password-hash = "0.5"
-rand_core = "0.6"
-bcrypt = "0.15"
+axum = { version = "0.7.9", features = ["macros"] }
+dotenv = { version = "0.15.0", optional = true }
+hyper = { version = "1.0.1", features = ["full"] }
+tokio = { version = "1.29.1", features = ["full"] }
+tower = "0.4.13"
+tower-http = { version = "0.5.0", features = ["cors", "trace"] }
+sqlx = { version = "0.7.4", features = [
+    "runtime-tokio-native-tls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+    "bigdecimal",
+    "macros"
+] }
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
+chrono = { version = "0.4.35", features = ["serde", "clock"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+bigdecimal = { version = "0.4.5", features = ["serde"] }
+axum-extra = { version = "0.9.0", features = ["typed-header"] }
+argon2 = "0.5.3"
+password-hash = "0.5.0"
+jsonwebtoken = "9.3.0"
+thiserror = "1.0.57"
+headers = "0.3.9"
+rand_core = "0.6.4"
+bcrypt = "0.15.1"
+hex = "0.4.3"
+sha2 = "0.10.8"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [features]
 default = ["dotenv"]
